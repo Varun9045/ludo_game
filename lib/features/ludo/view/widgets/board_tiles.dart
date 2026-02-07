@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../model/board_geometry.dart';
+
 class BoardTiles extends StatelessWidget {
   const BoardTiles({super.key});
 
@@ -14,24 +16,52 @@ class BoardTiles extends StatelessWidget {
         int row = index ~/ 15;
         int col = index % 15;
         Color? color;
+        final pos = Offset(col.toDouble(), row.toDouble());
 
-        if (row == 6 && col == 1) color = Colors.red;
-        if (row == 7 && col > 0 && col < 6) color = Colors.red;
-        if (row > 0 && row <= 5 && col == 7) color = Colors.green;
-        if (row == 1 && col == 8) color = Colors.green;
-        if (row == 7 && col >= 9 && col < 14) color = Colors.yellow[700];
-        if (row == 8 && col == 13) color = Colors.yellow[700];
-        if (row > 8 && row < 14 && col == 7) color = Colors.blue;
-        if (row == 13 && col == 6) color = Colors.blue;
+        if (_containsOffset(ludoBasePath, pos)) {
+          color = Colors.grey.shade200;
+        }
+
+        if (_containsOffset(ludoHomePaths["red"]!, pos)) {
+          color = Colors.red;
+        } else if (_containsOffset(ludoHomePaths["green"]!, pos)) {
+          color = Colors.green;
+        } else if (_containsOffset(ludoHomePaths["yellow"]!, pos)) {
+          color = Colors.yellow[700];
+        } else if (_containsOffset(ludoHomePaths["blue"]!, pos)) {
+          color = Colors.blue;
+        } else if (pos == ludoStartCells["red"]) {
+          color = Colors.red;
+        } else if (pos == ludoStartCells["green"]) {
+          color = Colors.green;
+        } else if (pos == ludoStartCells["yellow"]) {
+          color = Colors.yellow[700];
+        } else if (pos == ludoStartCells["blue"]) {
+          color = Colors.blue;
+        }
 
         return Container(
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.black, width: 0.38),
             color: color ?? Colors.white,
+            border: Border.all(color: Colors.black.withValues(alpha: 0.15), width: 0.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 1,
+                offset: const Offset(0, 0.5),
+              ),
+            ],
           ),
         );
       },
       itemCount: 225,
     );
+  }
+
+  bool _containsOffset(List<Offset> list, Offset pos) {
+    for (final o in list) {
+      if (o == pos) return true;
+    }
+    return false;
   }
 }

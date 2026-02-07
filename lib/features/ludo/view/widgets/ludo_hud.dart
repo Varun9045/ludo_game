@@ -38,11 +38,17 @@ class LudoHud extends StatelessWidget {
           GestureDetector(
             onTap: canRoll ? onRoll : null,
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 220),
+              duration: const Duration(milliseconds: 320),
               transitionBuilder: (child, anim) {
-                return ScaleTransition(
-                  scale: Tween<double>(begin: 0.8, end: 1.0).animate(anim),
-                  child: child,
+                final spin = Tween<double>(begin: 0.0, end: 1.0).animate(
+                  CurvedAnimation(parent: anim, curve: Curves.easeOutBack),
+                );
+                final scale = Tween<double>(begin: 0.7, end: 1.0).animate(
+                  CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
+                );
+                return RotationTransition(
+                  turns: spin,
+                  child: ScaleTransition(scale: scale, child: child),
                 );
               },
               child: Dice(

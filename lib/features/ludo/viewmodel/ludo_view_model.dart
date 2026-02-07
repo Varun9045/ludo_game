@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../model/board_geometry.dart';
 import '../model/token.dart';
 
 class LudoViewModel extends ChangeNotifier {
@@ -12,6 +13,8 @@ class LudoViewModel extends ChangeNotifier {
   bool canRoll = true;
   String? _lastMovedTokenKey;
   List<String> _activePlayers = const ["red", "green", "yellow", "blue"];
+  List<Offset> _lastMoveTrail = const [];
+  Color? _lastMoveTrailColor;
 
   late final List<Offset> _basePath;
   late final Map<String, int> _startIndex;
@@ -34,6 +37,8 @@ class LudoViewModel extends ChangeNotifier {
   Map<String, List<TokenState>> get tokens => _tokens;
   String? get lastMovedTokenKey => _lastMovedTokenKey;
   List<String> get activePlayers => _activePlayers;
+  List<Offset> get lastMoveTrail => _lastMoveTrail;
+  Color? get lastMoveTrailColor => _lastMoveTrailColor;
 
   Color playerColor(String player) {
     switch (player) {
@@ -65,6 +70,10 @@ class LudoViewModel extends ChangeNotifier {
   void moveToken(TokenState token) {
     if (canRoll) return;
     if (!_canMoveToken(token, diceValue)) return;
+
+    final prevStatus = token.status;
+    final prevSteps = token.steps;
+    final prevHomeStep = token.homeStep;
 
     bool captured = false;
 
@@ -102,6 +111,12 @@ class LudoViewModel extends ChangeNotifier {
     } else if (captured) {
       // Keep turn after capture on 6.
     }
+    _setMoveTrail(
+      token,
+      prevStatus,
+      prevSteps,
+      prevHomeStep,
+    );
     _pulseToken(token);
     canRoll = true;
     notifyListeners();
@@ -172,129 +187,18 @@ class LudoViewModel extends ChangeNotifier {
   }
 
   void _initBoardData() {
-    _basePath = [
-      const Offset(6, 1),
-      const Offset(6, 2),
-      const Offset(6, 3),
-      const Offset(6, 4),
-      const Offset(6, 5),
-      const Offset(5, 6),
-      const Offset(4, 6),
-      const Offset(3, 6),
-      const Offset(2, 6),
-      const Offset(1, 6),
-      const Offset(0, 6),
-      const Offset(0, 7),
-      const Offset(0, 8),
-      const Offset(1, 8),
-      const Offset(2, 8),
-      const Offset(3, 8),
-      const Offset(4, 8),
-      const Offset(5, 8),
-      const Offset(6, 9),
-      const Offset(6, 10),
-      const Offset(6, 11),
-      const Offset(6, 12),
-      const Offset(6, 13),
-      const Offset(6, 14),
-      const Offset(7, 14),
-      const Offset(8, 14),
-      const Offset(8, 13),
-      const Offset(8, 12),
-      const Offset(8, 11),
-      const Offset(8, 10),
-      const Offset(8, 9),
-      const Offset(9, 8),
-      const Offset(10, 8),
-      const Offset(11, 8),
-      const Offset(12, 8),
-      const Offset(13, 8),
-      const Offset(14, 8),
-      const Offset(14, 7),
-      const Offset(14, 6),
-      const Offset(13, 6),
-      const Offset(12, 6),
-      const Offset(11, 6),
-      const Offset(10, 6),
-      const Offset(9, 6),
-      const Offset(8, 5),
-      const Offset(8, 4),
-      const Offset(8, 3),
-      const Offset(8, 2),
-      const Offset(8, 1),
-      const Offset(8, 0),
-      const Offset(7, 0),
-      const Offset(6, 0),
-    ];
+    _basePath = ludoBasePath;
 
     _startIndex = {
-      "red": _basePath.indexOf(const Offset(6, 1)),
-      "green": _basePath.indexOf(const Offset(1, 8)),
-      "yellow": _basePath.indexOf(const Offset(8, 13)),
-      "blue": _basePath.indexOf(const Offset(13, 6)),
+      "red": _basePath.indexOf(ludoStartCells["red"]!),
+      "green": _basePath.indexOf(ludoStartCells["green"]!),
+      "yellow": _basePath.indexOf(ludoStartCells["yellow"]!),
+      "blue": _basePath.indexOf(ludoStartCells["blue"]!),
     };
 
-    _homePaths = {
-      "red": [
-        const Offset(7, 1),
-        const Offset(7, 2),
-        const Offset(7, 3),
-        const Offset(7, 4),
-        const Offset(7, 5),
-        const Offset(7, 6),
-      ],
-      "green": [
-        const Offset(1, 7),
-        const Offset(2, 7),
-        const Offset(3, 7),
-        const Offset(4, 7),
-        const Offset(5, 7),
-        const Offset(6, 7),
-      ],
-      "yellow": [
-        const Offset(7, 13),
-        const Offset(7, 12),
-        const Offset(7, 11),
-        const Offset(7, 10),
-        const Offset(7, 9),
-        const Offset(7, 8),
-      ],
-      "blue": [
-        const Offset(13, 7),
-        const Offset(12, 7),
-        const Offset(11, 7),
-        const Offset(10, 7),
-        const Offset(9, 7),
-        const Offset(8, 7),
-      ],
-    };
+    _homePaths = ludoHomePaths;
 
-    _homeSlots = {
-      "red": [
-        const Offset(1, 1),
-        const Offset(1, 4),
-        const Offset(3, 1),
-        const Offset(3, 4),
-      ],
-      "green": [
-        const Offset(1, 10),
-        const Offset(1, 13),
-        const Offset(3, 10),
-        const Offset(3, 13),
-      ],
-      "blue": [
-        const Offset(10, 1),
-        const Offset(10, 4),
-        const Offset(12, 1),
-        const Offset(12, 4),
-      ],
-      "yellow": [
-        const Offset(10, 10),
-        const Offset(10, 13),
-        const Offset(12, 10),
-        const Offset(12, 13),
-      ],
-    };
+    _homeSlots = ludoHomeSlots;
 
     _playerPath = {
       "red": _buildPlayerPath("red"),
@@ -303,16 +207,7 @@ class LudoViewModel extends ChangeNotifier {
       "blue": _buildPlayerPath("blue"),
     };
 
-    _safeCells = {
-      const Offset(2, 6),
-      const Offset(6, 12),
-      const Offset(12, 8),
-      const Offset(8, 2),
-      _playerPath["red"]![0],
-      _playerPath["green"]![0],
-      _playerPath["yellow"]![0],
-      _playerPath["blue"]![0],
-    };
+    _safeCells = ludoSafeCells;
   }
 
   List<Offset> _buildPlayerPath(String player) {
@@ -412,6 +307,92 @@ class LudoViewModel extends ChangeNotifier {
       if (a[i] != b[i]) return false;
     }
     return true;
+  }
+
+  void _setMoveTrail(
+    TokenState token,
+    TokenStatus prevStatus,
+    int prevSteps,
+    int prevHomeStep,
+  ) {
+    final trail = _computeTrail(
+      token.player,
+      prevStatus,
+      prevSteps,
+      prevHomeStep,
+      token.status,
+      token.steps,
+      token.homeStep,
+    );
+    _lastMoveTrail = trail;
+    _lastMoveTrailColor = playerColor(token.player);
+    notifyListeners();
+    Future.delayed(const Duration(milliseconds: 350), () {
+      _lastMoveTrail = const [];
+      _lastMoveTrailColor = null;
+      notifyListeners();
+    });
+  }
+
+  List<Offset> _computeTrail(
+    String player,
+    TokenStatus fromStatus,
+    int fromSteps,
+    int fromHomeStep,
+    TokenStatus toStatus,
+    int toSteps,
+    int toHomeStep,
+  ) {
+    final trail = <Offset>[];
+    final path = _playerPath[player]!;
+    final home = _homePaths[player]!;
+
+    if (fromStatus == TokenStatus.home && toStatus == TokenStatus.path) {
+      trail.add(path[0]);
+      return trail;
+    }
+
+    if (fromStatus == TokenStatus.path && toStatus == TokenStatus.path) {
+      for (int i = fromSteps + 1; i <= toSteps; i++) {
+        trail.add(path[i]);
+      }
+      return trail;
+    }
+
+    if (fromStatus == TokenStatus.path && toStatus == TokenStatus.homePath) {
+      for (int i = fromSteps + 1; i < path.length; i++) {
+        trail.add(path[i]);
+      }
+      for (int i = 0; i <= toHomeStep && i < home.length; i++) {
+        trail.add(home[i]);
+      }
+      return trail;
+    }
+
+    if (fromStatus == TokenStatus.homePath && toStatus == TokenStatus.homePath) {
+      for (int i = fromHomeStep + 1; i <= toHomeStep && i < home.length; i++) {
+        trail.add(home[i]);
+      }
+      return trail;
+    }
+
+    if (toStatus == TokenStatus.finished) {
+      if (fromStatus == TokenStatus.homePath) {
+        for (int i = fromHomeStep + 1; i < home.length; i++) {
+          trail.add(home[i]);
+        }
+      } else if (fromStatus == TokenStatus.path) {
+        for (int i = fromSteps + 1; i < path.length; i++) {
+          trail.add(path[i]);
+        }
+        for (int i = 0; i < home.length; i++) {
+          trail.add(home[i]);
+        }
+      }
+      return trail;
+    }
+
+    return trail;
   }
 }
 

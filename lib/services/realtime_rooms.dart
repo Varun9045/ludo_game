@@ -24,7 +24,7 @@ class RealtimeRooms {
       "maxPlayers": maxPlayers,
       "players": {
         hostPlayerId: {
-          "seat": 0,
+          "seat": _seatOrder(maxPlayers).first,
           "connected": true,
           "lastSeen": ServerValue.timestamp,
         }
@@ -42,17 +42,31 @@ class RealtimeRooms {
     final room = roomSnap.value as Map? ?? {};
     final players = (room["players"] as Map?) ?? {};
     final maxPlayers = (room["maxPlayers"] ?? 4) as int;
-    if (players.length >= maxPlayers) {
+    final allowedSeats = _seatOrder(maxPlayers);
+    if (players.length >= allowedSeats.length) {
       throw StateError("Room full");
     }
-    final seat = players.length;
+    final taken = players.values
+        .map((e) => (e as Map?)?["seat"] as int? ?? -1)
+        .where((e) => e >= 0)
+        .toSet();
+    int? seat;
+    for (final s in allowedSeats) {
+      if (!taken.contains(s)) {
+        seat = s;
+        break;
+      }
+    }
+    if (seat == null) {
+      throw StateError("Room full");
+    }
     await ref.child("players/$playerId").set({
       "seat": seat,
       "connected": true,
       "lastSeen": ServerValue.timestamp,
     });
     final count = players.length + 1;
-    if (count >= maxPlayers) {
+    if (count >= allowedSeats.length) {
       await ref.update({"status": "active"});
     }
   }
@@ -160,6 +174,12 @@ class RealtimeRooms {
       "updatedBy": playerId,
       "updatedAt": ServerValue.timestamp,
     });
+  }
+
+  List<int> _seatOrder(int maxPlayers) {
+    if (maxPlayers == 2) return [0, 2];
+    if (maxPlayers == 3) return [0, 1, 2];
+    return [0, 1, 2, 3];
   }
 
   Future<void> startGame({

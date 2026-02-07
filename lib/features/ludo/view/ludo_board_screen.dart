@@ -6,6 +6,7 @@ import '../../../services/auth_service.dart';
 import '../../../services/realtime_rooms.dart';
 import '../viewmodel/ludo_view_model.dart';
 import 'ludo_board_view.dart';
+import 'widgets/ludo_hud.dart';
 
 class LudoBoardScreen extends StatefulWidget {
   const LudoBoardScreen({
@@ -62,23 +63,44 @@ class _LudoBoardScreenState extends State<LudoBoardScreen> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        LudoBoardView(
-          vm: _vm,
-          canAct: _canAct(),
-          onAfterLocalMove: () async {
-            final id = _playerId;
-            if (id == null) return;
-            await _rooms.submitMove(code: widget.roomCode, playerId: id, vm: _vm);
-          },
-          onAfterLocalRoll: () async {
-            final id = _playerId;
-            if (id == null) return;
-            await _rooms.submitMove(code: widget.roomCode, playerId: id, vm: _vm);
-          },
+        const _ScreenBackground(),
+        SafeArea(
+          child: Column(
+            children: [
+              _topBar(),
+              Expanded(
+                child: Center(
+                  child: LudoBoardView(
+                    vm: _vm,
+                    canAct: _canAct(),
+                    onAfterLocalMove: () async {
+                      final id = _playerId;
+                      if (id == null) return;
+                      await _rooms.submitMove(
+                        code: widget.roomCode,
+                        playerId: id,
+                        vm: _vm,
+                      );
+                    },
+                    onAfterLocalRoll: () async {
+                      final id = _playerId;
+                      if (id == null) return;
+                      await _rooms.submitMove(
+                        code: widget.roomCode,
+                        playerId: id,
+                        vm: _vm,
+                      );
+                    },
+                  ),
+                ),
+              ),
+              _bottomBar(),
+            ],
+          ),
         ),
         Positioned(
           right: 12,
-          bottom: 12,
+          bottom: 96,
           child: _infoButton(),
         ),
       ],
@@ -149,6 +171,136 @@ class _LudoBoardScreenState extends State<LudoBoardScreen> {
           border: Border.all(color: Colors.black),
         ),
         child: const Icon(Icons.info_outline, size: 22),
+      ),
+    );
+  }
+
+  Widget _topBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _playerPill(
+            color: Colors.red,
+            active: _myColor == "red",
+          ),
+          Row(
+            children: [
+              _iconCircle(Icons.chat_bubble_outline),
+              const SizedBox(width: 8),
+              _iconCircle(Icons.volume_up_outlined),
+            ],
+          ),
+          _playerPill(
+            color: Colors.green,
+            active: _myColor == "green",
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _bottomBar() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D4CA3),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _playerPill(
+            color: Colors.blue,
+            active: _myColor == "blue",
+            compact: true,
+          ),
+          LudoHud(
+            canRoll: _canAct(),
+            diceValue: _vm.diceValue,
+            currentPlayer: _vm.currentPlayer,
+            playerColor: _vm.playerColor,
+            isActivePlayer: _vm.isActivePlayer,
+            onRoll: () async {
+              if (!_canAct()) return;
+              _vm.rollDice();
+              final id = _playerId;
+              if (id == null) return;
+              await _rooms.submitMove(
+                code: widget.roomCode,
+                playerId: id,
+                vm: _vm,
+              );
+            },
+          ),
+          _playerPill(
+            color: Colors.yellow[700]!,
+            active: _myColor == "yellow",
+            compact: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _iconCircle(IconData icon) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.95),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Icon(icon, size: 18),
+    );
+  }
+
+  Widget _playerPill({
+    required Color color,
+    required bool active,
+    bool compact = false,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 10 : 14,
+        vertical: compact ? 6 : 8,
+      ),
+      decoration: BoxDecoration(
+        color: active ? color : color.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.8)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Container(
+        width: compact ? 14 : 18,
+        height: compact ? 14 : 18,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.black.withValues(alpha: 0.2)),
+        ),
       ),
     );
   }
@@ -258,4 +410,53 @@ class _LudoBoardScreenState extends State<LudoBoardScreen> {
       Navigator.of(context).pop();
     }
   }
+}
+
+class _ScreenBackground extends StatelessWidget {
+  const _ScreenBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment(0.2, -0.4),
+          radius: 1.2,
+          colors: [
+            Color(0xFF2B7ACD),
+            Color(0xFF0B3A78),
+          ],
+        ),
+      ),
+      child: CustomPaint(
+        painter: _DiamondPatternPainter(),
+        child: const SizedBox.expand(),
+      ),
+    );
+  }
+}
+
+class _DiamondPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.08)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    const step = 24.0;
+    for (double y = -size.height; y < size.height * 2; y += step) {
+      for (double x = -size.width; x < size.width * 2; x += step) {
+        final path = Path()
+          ..moveTo(x + step / 2, y)
+          ..lineTo(x + step, y + step / 2)
+          ..lineTo(x + step / 2, y + step)
+          ..lineTo(x, y + step / 2)
+          ..close();
+        canvas.drawPath(path, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
