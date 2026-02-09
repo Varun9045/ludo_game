@@ -54,7 +54,8 @@ class LudoHud extends StatelessWidget {
               child: Dice(
                 key: ValueKey<int>(diceValue),
                 value: diceValue,
-                color: playerColor(currentPlayer),
+                dotColor: playerColor(currentPlayer),
+                borderColor: playerColor(currentPlayer),
               ),
             ),
           ),

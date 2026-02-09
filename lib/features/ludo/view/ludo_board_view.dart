@@ -16,8 +16,8 @@ class LudoBoardView extends StatelessWidget {
 
   final LudoViewModel vm;
   final bool canAct;
-  final VoidCallback onAfterLocalMove;
-  final VoidCallback onAfterLocalRoll;
+  final Future<void> Function() onAfterLocalMove;
+  final Future<void> Function() onAfterLocalRoll;
 
   @override
   Widget build(BuildContext context) {
@@ -225,19 +225,19 @@ class LudoBoardView extends StatelessWidget {
           AnimatedPositioned(
             top: pos.dy * cellSize + cellSize * 0.1,
             left: pos.dx * cellSize + cellSize * 0.1,
-            duration: const Duration(milliseconds: 280),
+            duration: const Duration(milliseconds: 420),
             curve: Curves.easeOutCubic,
             child: GestureDetector(
               onTap: vm.isActivePlayer(token.player)
-                  ? () {
+                  ? () async {
                       if (!canAct) return;
-                      vm.moveToken(token);
-                      onAfterLocalMove();
+                      await vm.moveToken(token);
+                      await onAfterLocalMove();
                     }
                   : null,
               child: AnimatedScale(
                 scale: vm.isLastMoved(token) ? 1.15 : 1.0,
-                duration: const Duration(milliseconds: 180),
+                duration: const Duration(milliseconds: 260),
                 curve: Curves.easeOutBack,
                 child: Container(
                   width: cellSize * 0.9,

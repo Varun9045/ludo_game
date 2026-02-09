@@ -9,6 +9,7 @@ class RealtimeRooms {
   final FirebaseDatabase db;
 
   DatabaseReference roomRef(String code) => db.ref("rooms/$code");
+  DatabaseReference _messagesRef(String code) => roomRef(code).child("messages");
   DatabaseReference _connectedRef() => db.ref(".info/connected");
 
   Future<void> createRoom({
@@ -107,6 +108,29 @@ class RealtimeRooms {
     });
   }
 
+  Stream<List<RoomMessage>> watchMessages(String code) {
+    final query = _messagesRef(code).orderByChild("ts").limitToLast(50);
+    return query.onValue.map((event) {
+      final data = event.snapshot.value as Map? ?? {};
+      final messages = <RoomMessage>[];
+      data.forEach((k, v) {
+        final map = v as Map? ?? {};
+        messages.add(
+          RoomMessage(
+            id: k.toString(),
+            senderId: (map["senderId"] ?? "").toString(),
+            senderColor: (map["senderColor"] ?? "").toString(),
+            receiverColor: (map["receiverColor"] ?? "").toString(),
+            text: (map["text"] ?? "").toString(),
+            ts: (map["ts"] ?? 0) as int,
+          ),
+        );
+      });
+      messages.sort((a, b) => a.ts.compareTo(b.ts));
+      return messages;
+    });
+  }
+
   Stream<List<RoomSummary>> watchWaitingRooms() {
     final query = db.ref("rooms").orderByChild("status").equalTo("waiting");
     return query.onValue.map((event) {
@@ -173,6 +197,23 @@ class RealtimeRooms {
       "tokens": _serializeTokens(vm),
       "updatedBy": playerId,
       "updatedAt": ServerValue.timestamp,
+    });
+  }
+
+  Future<void> sendMessage({
+    required String code,
+    required String senderId,
+    required String senderColor,
+    String receiverColor = "all",
+    required String text,
+  }) async {
+    final ref = _messagesRef(code).push();
+    await ref.set({
+      "senderId": senderId,
+      "senderColor": senderColor,
+      "receiverColor": receiverColor,
+      "text": text,
+      "ts": ServerValue.timestamp,
     });
   }
 
@@ -327,4 +368,22 @@ class RoomSummary {
   final int players;
   final int connected;
   final int maxPlayers;
+}
+
+class RoomMessage {
+  RoomMessage({
+    required this.id,
+    required this.senderId,
+    required this.senderColor,
+    required this.receiverColor,
+    required this.text,
+    required this.ts,
+  });
+
+  final String id;
+  final String senderId;
+  final String senderColor;
+  final String receiverColor;
+  final String text;
+  final int ts;
 }

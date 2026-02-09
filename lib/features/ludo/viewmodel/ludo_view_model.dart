@@ -9,12 +9,16 @@ class LudoViewModel extends ChangeNotifier {
   final Random _rng = Random();
 
   int diceValue = 1;
+  int _consecutiveSixes = 0;
+  String? _turnSnapshotPlayer;
+  List<_TokenSnapshot> _turnSnapshot = const [];
   String currentPlayer = "red";
   bool canRoll = true;
   String? _lastMovedTokenKey;
   List<String> _activePlayers = const ["red", "green", "yellow", "blue"];
   List<Offset> _lastMoveTrail = const [];
   Color? _lastMoveTrailColor;
+  bool _isAnimatingMove = false;
 
   late final List<Offset> _basePath;
   late final Map<String, int> _startIndex;
@@ -32,6 +36,7 @@ class LudoViewModel extends ChangeNotifier {
 
   LudoViewModel() {
     _initBoardData();
+    _captureTurnSnapshot();
   }
 
   Map<String, List<TokenState>> get tokens => _tokens;
@@ -57,7 +62,27 @@ class LudoViewModel extends ChangeNotifier {
 
   void rollDice() {
     if (!canRoll) return;
-    diceValue = _rng.nextInt(6) + 1;
+    if (_turnSnapshotPlayer != currentPlayer) {
+      _captureTurnSnapshot();
+    }
+    int next;
+    do {
+      next = _rng.nextInt(6) + 1;
+    } while (diceValue != 6 && next == diceValue);
+    if (next == 6) {
+      if (_consecutiveSixes >= 2) {
+        _restoreTurnSnapshot();
+        _consecutiveSixes = 0;
+        _switchTurn();
+        canRoll = true;
+        notifyListeners();
+        return;
+      }
+      _consecutiveSixes += 1;
+    } else {
+      _consecutiveSixes = 0;
+    }
+    diceValue = next;
     canRoll = false;
 
     if (!_hasAnyValidMove(currentPlayer, diceValue)) {
@@ -67,9 +92,11 @@ class LudoViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void moveToken(TokenState token) {
+  Future<void> moveToken(TokenState token) async {
     if (canRoll) return;
+    if (_isAnimatingMove) return;
     if (!_canMoveToken(token, diceValue)) return;
+    _isAnimatingMove = true;
 
     final prevStatus = token.status;
     final prevSteps = token.steps;
@@ -77,30 +104,7 @@ class LudoViewModel extends ChangeNotifier {
 
     bool captured = false;
 
-    if (token.status == TokenStatus.home) {
-      token.status = TokenStatus.path;
-      token.steps = 0;
-    } else if (token.status == TokenStatus.path) {
-      final next = token.steps + diceValue;
-      if (next < 52) {
-        token.steps = next;
-      } else {
-        final homeStep = next - 52;
-        if (homeStep >= 5) {
-          token.status = TokenStatus.finished;
-        } else {
-          token.status = TokenStatus.homePath;
-          token.homeStep = homeStep;
-        }
-      }
-    } else if (token.status == TokenStatus.homePath) {
-      final next = token.homeStep + diceValue;
-      if (next == 5) {
-        token.status = TokenStatus.finished;
-      } else {
-        token.homeStep = next;
-      }
-    }
+    await _animateTokenMove(token, diceValue);
 
     if (token.status == TokenStatus.path) {
       captured = _resolveCapture(token);
@@ -119,6 +123,7 @@ class LudoViewModel extends ChangeNotifier {
     );
     _pulseToken(token);
     canRoll = true;
+    _isAnimatingMove = false;
     notifyListeners();
   }
 
@@ -149,9 +154,13 @@ class LudoViewModel extends ChangeNotifier {
     final idx = list.indexOf(currentPlayer);
     if (idx == -1) {
       currentPlayer = list.first;
+      _consecutiveSixes = 0;
+      _captureTurnSnapshot();
       return;
     }
     currentPlayer = list[(idx + 1) % list.length];
+    _consecutiveSixes = 0;
+    _captureTurnSnapshot();
   }
 
   bool _hasAnyValidMove(String player, int dice) {
@@ -214,7 +223,7 @@ class LudoViewModel extends ChangeNotifier {
     final start = _startIndex[player]!;
     return List.generate(
       _basePath.length,
-      (i) => _basePath[(start + i) % _basePath.length],
+      (i) => _basePath[(start - i + _basePath.length) % _basePath.length],
     );
   }
 
@@ -334,6 +343,85 @@ class LudoViewModel extends ChangeNotifier {
     });
   }
 
+  void _captureTurnSnapshot() {
+    final list = _tokens[currentPlayer];
+    if (list == null) return;
+    _turnSnapshotPlayer = currentPlayer;
+    _turnSnapshot = list.map((t) => _TokenSnapshot.fromToken(t)).toList();
+  }
+
+  void _restoreTurnSnapshot() {
+    if (_turnSnapshotPlayer != currentPlayer) return;
+    final list = _tokens[currentPlayer];
+    if (list == null || list.length != _turnSnapshot.length) return;
+    for (int i = 0; i < list.length; i++) {
+      _turnSnapshot[i].applyTo(list[i]);
+    }
+  }
+
+  Future<void> _animateTokenMove(TokenState token, int dice) async {
+    const stepDelay = Duration(milliseconds: 180);
+
+    if (token.status == TokenStatus.home) {
+      token.status = TokenStatus.path;
+      token.steps = 0;
+      notifyListeners();
+      await Future.delayed(stepDelay);
+      return;
+    }
+
+    if (token.status == TokenStatus.path) {
+      final target = token.steps + dice;
+      if (target <= 51) {
+        for (int s = token.steps + 1; s <= target; s++) {
+          token.steps = s;
+          notifyListeners();
+          await Future.delayed(stepDelay);
+        }
+        return;
+      }
+
+      for (int s = token.steps + 1; s <= 51; s++) {
+        token.steps = s;
+        notifyListeners();
+        await Future.delayed(stepDelay);
+      }
+
+      final remaining = dice - (51 - token.steps);
+      token.status = TokenStatus.homePath;
+      for (int hs = 0; hs < remaining; hs++) {
+        if (hs >= 5) {
+          token.status = TokenStatus.finished;
+          notifyListeners();
+          await Future.delayed(stepDelay);
+          return;
+        }
+        token.homeStep = hs;
+        notifyListeners();
+        await Future.delayed(stepDelay);
+      }
+      if (token.homeStep >= 5) {
+        token.status = TokenStatus.finished;
+      }
+      return;
+    }
+
+    if (token.status == TokenStatus.homePath) {
+      final target = token.homeStep + dice;
+      for (int hs = token.homeStep + 1; hs <= target; hs++) {
+        if (hs >= 5) {
+          token.status = TokenStatus.finished;
+          notifyListeners();
+          await Future.delayed(stepDelay);
+          return;
+        }
+        token.homeStep = hs;
+        notifyListeners();
+        await Future.delayed(stepDelay);
+      }
+    }
+  }
+
   List<Offset> _computeTrail(
     String player,
     TokenStatus fromStatus,
@@ -393,6 +481,32 @@ class LudoViewModel extends ChangeNotifier {
     }
 
     return trail;
+  }
+}
+
+class _TokenSnapshot {
+  _TokenSnapshot({
+    required this.status,
+    required this.steps,
+    required this.homeStep,
+  });
+
+  final TokenStatus status;
+  final int steps;
+  final int homeStep;
+
+  factory _TokenSnapshot.fromToken(TokenState token) {
+    return _TokenSnapshot(
+      status: token.status,
+      steps: token.steps,
+      homeStep: token.homeStep,
+    );
+  }
+
+  void applyTo(TokenState token) {
+    token.status = status;
+    token.steps = steps;
+    token.homeStep = homeStep;
   }
 }
 
