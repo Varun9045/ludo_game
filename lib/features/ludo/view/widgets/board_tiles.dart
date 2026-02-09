@@ -18,10 +18,6 @@ class BoardTiles extends StatelessWidget {
         Color? color;
         final pos = Offset(col.toDouble(), row.toDouble());
 
-        if (_containsOffset(ludoBasePath, pos)) {
-          color = Colors.grey.shade200;
-        }
-
         if (_containsOffset(ludoHomePaths["red"]!, pos)) {
           color = Colors.red;
         } else if (_containsOffset(ludoHomePaths["green"]!, pos)) {
@@ -40,18 +36,24 @@ class BoardTiles extends StatelessWidget {
           color = Colors.blue;
         }
 
-        return Container(
-          decoration: BoxDecoration(
-            color: color ?? Colors.white,
-            border: Border.all(color: Colors.black.withValues(alpha: 0.15), width: 0.5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 1,
-                offset: const Offset(0, 0.5),
+        final isSafe = _containsOffset(ludoSafeCells.toList(), pos);
+        return Stack(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: color ?? Colors.white,
+                border: Border.all(color: Colors.grey.shade300, width: 0.5),
               ),
-            ],
-          ),
+            ),
+            if (isSafe)
+              Center(
+                child: Icon(
+                  Icons.star,
+                  size: 12,
+                  color: Colors.black,
+                ),
+              ),
+          ],
         );
       },
       itemCount: 225,
@@ -64,4 +66,5 @@ class BoardTiles extends StatelessWidget {
     }
     return false;
   }
+
 }

@@ -68,14 +68,14 @@ class LudoBoardView extends StatelessWidget {
                           top: 0,
                           width: boardSize * 6 / 15,
                           height: boardSize * 6 / 15,
-                          child: _homeBase(Colors.green),
+                          child: _homeBase(Colors.blue),
                         ),
                         Positioned(
                           left: 0,
                           bottom: 0,
                           width: boardSize * 6 / 15,
                           height: boardSize * 6 / 15,
-                          child: _homeBase(Colors.blue),
+                          child: _homeBase(Colors.green),
                         ),
                         Positioned(
                           right: 0,
@@ -299,7 +299,7 @@ class CenterTrianglePainter extends CustomPainter {
     final paint = Paint();
     final center = Offset(size.width / 2, size.height / 2);
 
-    paint.color = Colors.green;
+    paint.color = Colors.blue;
     canvas.drawPath(
       Path()
         ..moveTo(center.dx, center.dy)
@@ -319,7 +319,7 @@ class CenterTrianglePainter extends CustomPainter {
       paint,
     );
 
-    paint.color = Colors.blue;
+    paint.color = Colors.green;
     canvas.drawPath(
       Path()
         ..moveTo(center.dx, center.dy)

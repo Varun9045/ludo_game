@@ -56,22 +56,14 @@ const List<Offset> ludoBasePath = [
 ];
 
 const Map<String, Offset> ludoStartCells = {
-  "red": Offset(6, 1),
-  "green": Offset(1, 8),
-  "yellow": Offset(8, 13),
-  "blue": Offset(13, 6),
+  "red": Offset(1, 6),
+  "green": Offset(6, 13),
+  "yellow": Offset(13, 8),
+  "blue": Offset(8, 1),
 };
 
 const Map<String, List<Offset>> ludoHomePaths = {
   "red": [
-    Offset(7, 1),
-    Offset(7, 2),
-    Offset(7, 3),
-    Offset(7, 4),
-    Offset(7, 5),
-    Offset(7, 6),
-  ],
-  "green": [
     Offset(1, 7),
     Offset(2, 7),
     Offset(3, 7),
@@ -79,7 +71,7 @@ const Map<String, List<Offset>> ludoHomePaths = {
     Offset(5, 7),
     Offset(6, 7),
   ],
-  "yellow": [
+  "green": [
     Offset(7, 13),
     Offset(7, 12),
     Offset(7, 11),
@@ -87,13 +79,21 @@ const Map<String, List<Offset>> ludoHomePaths = {
     Offset(7, 9),
     Offset(7, 8),
   ],
-  "blue": [
+  "yellow": [
     Offset(13, 7),
     Offset(12, 7),
     Offset(11, 7),
     Offset(10, 7),
     Offset(9, 7),
     Offset(8, 7),
+  ],
+  "blue": [
+    Offset(7, 1),
+    Offset(7, 2),
+    Offset(7, 3),
+    Offset(7, 4),
+    Offset(7, 5),
+    Offset(7, 6),
   ],
 };
 
@@ -104,33 +104,30 @@ const Map<String, List<Offset>> ludoHomeSlots = {
     Offset(3, 1),
     Offset(3, 4),
   ],
-  "green": [
-    Offset(1, 10),
-    Offset(1, 13),
-    Offset(3, 10),
-    Offset(3, 13),
-  ],
-  "blue": [
-    Offset(10, 1),
-    Offset(10, 4),
-    Offset(12, 1),
-    Offset(12, 4),
-  ],
   "yellow": [
     Offset(10, 10),
     Offset(10, 13),
     Offset(12, 10),
     Offset(12, 13),
   ],
+  "green": [
+    Offset(10, 1),
+    Offset(10, 4),
+    Offset(12, 1),
+    Offset(12, 4),
+  ],
+  "blue": [
+    Offset(1, 10),
+    Offset(1, 13),
+    Offset(3, 10),
+    Offset(3, 13),
+  ],
 };
 
 final Set<Offset> ludoSafeCells = {
-  const Offset(2, 6),
-  const Offset(6, 12),
-  const Offset(12, 8),
-  const Offset(8, 2),
-  const Offset(6, 1),
-  const Offset(1, 8),
-  const Offset(8, 13),
-  const Offset(13, 6),
+  // const Offset(6, 12),
+  // const Offset(12, 8),
+  // const Offset(8, 2),
+  // const Offset(13, 6),
+
 };

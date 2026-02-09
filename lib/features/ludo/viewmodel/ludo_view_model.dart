@@ -45,11 +45,11 @@ class LudoViewModel extends ChangeNotifier {
       case "red":
         return Colors.red;
       case "green":
-        return Colors.green;
+        return Colors.blue;
       case "yellow":
         return Colors.yellow.shade700;
       case "blue":
-        return Colors.blue;
+        return Colors.green;
       default:
         return Colors.black;
     }
